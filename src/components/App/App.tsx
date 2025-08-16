@@ -1,8 +1,8 @@
 // import ErrorMessage from "../ErrorMessage/ErrorMessage";
 // import Loader from "../Loader/Loader";
 
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { ChangeEvent, useState } from "react";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 // import { useDebouncedCallback } from "use-debounce";
 
@@ -16,28 +16,52 @@ import css from "./App.module.css";
 import CreatePostForm from "../CreatePostForm/CreatePostForm";
 import EditPostForm from "../EditPostForm/EditPostForm";
 import { Post } from "../../types/post";
+import { useDebouncedCallback } from "use-debounce";
+
+import { PacmanLoader } from "react-spinners";
+import ErrorMessage from "../ErrorMessage/ErrorMessage";
+import Pagination from "../Pagination/Pagination";
+
+const LIMIT = 10;
 
 function App() {
-  // const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
   const [isCreatePost, setIsCreatePost] = useState(false);
   const [isEditPost, setIsEditPost] = useState(false);
   const [editedPost, setEditedPost] = useState<Post | null>(null);
-  // const [searchQuery, setSearchQuery] = useState();
-  // const [search, setSearch] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const { data: posts } = useQuery({
-    queryKey: ["posts"],
-    queryFn: () => fetchPosts(),
+  const { data, isPending, isError } = useQuery({
+    queryKey: ["posts", searchQuery, currentPage],
+    queryFn: () => fetchPosts(searchQuery, currentPage, LIMIT),
+    placeholderData: keepPreviousData,
   });
 
+  const handleSearcChange = useDebouncedCallback(
+    (e: ChangeEvent<HTMLInputElement>) => {
+      setSearchQuery(e.target.value);
+    },
+    500
+  );
   const toggleEditPost = (post: Post) => {
     setEditedPost(post);
+  };
+
+  const totalPages = data?.totalCount ? Math.ceil(data.totalCount / LIMIT) : 0;
+  const handleChangePage = (page: number) => {
+    setCurrentPage(page);
   };
   return (
     <div className={css.app}>
       <header className={css.toolbar}>
-        <SearchBox />
-        {/* <Pagination /> */}
+        <SearchBox onChange={handleSearcChange} />
+        {totalPages > 1 && (
+          <Pagination
+            pageCount={totalPages}
+            forcePage={currentPage}
+            onPageChange={handleChangePage}
+          />
+        )}
         <button
           className={css.button}
           onClick={() => setIsCreatePost(!isCreatePost)}
@@ -45,14 +69,16 @@ function App() {
           Create post
         </button>
       </header>
+      {isPending && <PacmanLoader color="#3361d3" />}
+      {isError && <ErrorMessage />}
       {isCreatePost && (
         <Modal onClose={() => setIsCreatePost(!isCreatePost)}>
           <CreatePostForm onCancel={() => setIsCreatePost(!isCreatePost)} />
         </Modal>
       )}
-      {posts && (
+      {data && (
         <PostList
-          items={posts}
+          items={data.posts}
           toggleModal={() => setIsEditPost(!isEditPost)}
           toggleEditPost={toggleEditPost}
         />
