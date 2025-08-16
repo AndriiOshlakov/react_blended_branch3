@@ -1,13 +1,12 @@
 import { ReactNode, useEffect } from "react";
 import css from "./Modal.module.css";
 import { createPortal } from "react-dom";
-
 interface ModalProps {
-  onClose: () => void;
   children: ReactNode;
+  onClose: () => void;
 }
 
-export default function Modal({ onClose, children }: ModalProps) {
+export default function Modal({ children, onClose }: ModalProps) {
   const handleBackdropClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if (event.target === event.currentTarget) {
       onClose();
@@ -28,7 +27,6 @@ export default function Modal({ onClose, children }: ModalProps) {
       document.body.style.overflow = "";
     };
   }, [onClose]);
-
   return createPortal(
     <div
       className={css.backdrop}
@@ -36,10 +34,7 @@ export default function Modal({ onClose, children }: ModalProps) {
       aria-modal="true"
       onClick={handleBackdropClick}
     >
-      <div className={css.modal}>
-        {/* <NoteForm /> */}
-        {children}
-      </div>
+      <div className={css.modal}>{children}</div>
     </div>,
     document.body
   );
